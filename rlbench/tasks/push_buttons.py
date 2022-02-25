@@ -1,5 +1,6 @@
 from typing import List
 import itertools
+import random
 import math
 import numpy as np
 from pyrep.objects.shape import Shape
@@ -9,32 +10,10 @@ from rlbench.backend.task import Task
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.conditions import JointCondition, ConditionSet
 
-MAX_TARGET_BUTTONS = 3
-MAX_VARIATIONS = 50
 
 # button top plate and wrapper will be be red before task completion
 # and be changed to cyan upon success of task, so colors list used to randomly vary colors of
 # base block will be redefined, excluding red and green
-colors = [
-    ('maroon', (0.5, 0.0, 0.0)),
-    ('green', (0.0, 0.5, 0.0)),
-    ('blue', (0.0, 0.0, 1.0)),
-    ('navy', (0.0, 0.0, 0.5)),
-    ('yellow', (1.0, 1.0, 0.0)),
-    ('cyan', (0.0, 1.0, 1.0)),
-    ('magenta', (1.0, 0.0, 1.0)),
-    ('silver', (0.75, 0.75, 0.75)),
-    ('gray', (0.5, 0.5, 0.5)),
-    ('orange', (1.0, 0.5, 0.0)),
-    ('olive', (0.5, 0.5, 0.0)),
-    ('purple', (0.5, 0.0, 0.5)),
-    ('teal', (0, 0.5, 0.5)),
-    ('azure', (0.0, 0.5, 1.0)),
-    ('violet', (0.5, 0.0, 1.0)),
-    ('rose', (1.0, 0.0, 0.5)),
-    ('black', (0.0, 0.0, 0.0)),
-    ('white', (1.0, 1.0, 1.0)),
-]
 
 color_permutations = list(itertools.permutations(colors, 3))
 
@@ -49,36 +28,70 @@ def print_permutations(color_permutations):
 
 
 class PushButtons(Task):
+    num_buttons = 3
+    max_variations = 50
+    colors = [
+        ('maroon', (0.5, 0.0, 0.0)),
+        ('green', (0.0, 0.5, 0.0)),
+        ('blue', (0.0, 0.0, 1.0)),
+        ('navy', (0.0, 0.0, 0.5)),
+        ('yellow', (1.0, 1.0, 0.0)),
+        ('cyan', (0.0, 1.0, 1.0)),
+        ('magenta', (1.0, 0.0, 1.0)),
+        ('silver', (0.75, 0.75, 0.75)),
+        ('gray', (0.5, 0.5, 0.5)),
+        ('orange', (1.0, 0.5, 0.0)),
+        ('olive', (0.5, 0.5, 0.0)),
+        ('purple', (0.5, 0.0, 0.5)),
+        ('teal', (0, 0.5, 0.5)),
+        ('azure', (0.0, 0.5, 1.0)),
+        ('violet', (0.5, 0.0, 1.0)),
+        ('rose', (1.0, 0.0, 0.5)),
+        ('black', (0.0, 0.0, 0.0)),
+        ('white', (1.0, 1.0, 1.0)),
+    ]
 
     def init_task(self) -> None:
         self.buttons_pushed = 0
         self.color_variation_index = 0
         self.target_buttons = [Shape('push_buttons_target%d' % i)
-                               for i in range(3)]
+                               for i in range(self.num_buttons)]
         self.target_topPlates = [Shape('target_button_topPlate%d' % i)
-                                 for i in range(3)]
+                                 for i in range(self.num_buttons)]
         self.target_joints = [Joint('target_button_joint%d' % i)
-                              for i in range(3)]
+                              for i in range(self.num_buttons)]
         self.target_wraps = [Shape('target_button_wrap%d' % i)
-                             for i in range(3)]
+                             for i in range(self.num_buttons)]
         self.boundaries = Shape('push_buttons_boundary')
         # goal_conditions merely state joint conditions for push action for
         # each button regardless of whether the task involves pushing it
         self.goal_conditions = [JointCondition(self.target_joints[n], 0.003)
-                                for n in range(3)]
+                                for n in range(self.num_buttons)]
 
         self.register_waypoint_ability_start(0, self._move_above_next_target)
         self.register_waypoints_should_repeat(self._repeat)
+
+        sequences = set()
+        for col in itertools.permutations(colors, num_buttons):
+            for i in range(1, 4):
+                seq = tuple([c for c, _ in col[:i]])
+                if seq not in sequences:
+                    sequences.add(seq)
+        self.sequences = sorted(sequences)
+        var_rand = random.Random(3)
+        var_rand.shuffle(self.sequences)
+        # the 20 first sequences contain all colors
+
 
     def init_episode(self, index: int) -> List[str]:
         for tp in self.target_topPlates:
             tp.set_color([1.0, 0.0, 0.0])
         for w in self.target_wraps:
             w.set_color([1.0, 0.0, 0.0])
+
         # For each color permutation, we want to have 1, 2 or 3 buttons pushed
-        color_index = int(index / MAX_TARGET_BUTTONS)
-        self.buttons_to_push = 1 + index % MAX_TARGET_BUTTONS
-        button_colors = color_permutations[color_index]
+        button_colors = self.sequences[index]
+        self.buttons_to_push = len(button_colors)
 
         self.color_names = []
         self.color_rgbs = []
