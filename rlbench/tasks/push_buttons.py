@@ -13,7 +13,6 @@ from rlbench.backend.conditions import JointCondition, ConditionSet
 
 Color = Tuple[str, Tuple[float, float, float]]
 
-
 class PushButtons(Task):
     num_buttons = 3
     max_variations = 5220
