@@ -16,7 +16,7 @@ Color = Tuple[str, Tuple[float, float, float]]
 
 class PushButtons(Task):
     num_buttons = 3
-    max_variations = 50
+    max_variations = 5220
     # button top plate and wrapper will be be red before task completion
     # and be changed to cyan upon success of task, so colors list used to randomly vary colors of
     # base block will be redefined, excluding red and green
@@ -40,6 +40,7 @@ class PushButtons(Task):
         ("black", (0.0, 0.0, 0.0)),
         ("white", (1.0, 1.0, 1.0)),
     ]
+    _sequences = None
 
     def init_task(self) -> None:
         self.buttons_pushed = 0
@@ -67,15 +68,23 @@ class PushButtons(Task):
         self.register_waypoint_ability_start(0, self._move_above_next_target)
         self.register_waypoints_should_repeat(self._repeat)
 
-        sequences = set()
-        for col in itertools.permutations(self.colors, self.num_buttons):
-            for i in range(1, 4):
-                seq = tuple(col[:i])
-                sequences.add(seq)
-        self.sequences: List[Tuple[Color, ...]] = sorted(sequences)
-        # with this seed, the 20 first sequences contain all colors
-        var_rand = random.Random(3)
-        var_rand.shuffle(self.sequences)
+    @property
+    def sequences(self) -> List[Tuple[Color, ...]]:
+        if self._sequences is None:
+            sequences = [set(), set(), set()]
+            for col in itertools.permutations(self.colors, self.num_buttons):
+                for i in range(3):
+                    seq = tuple(col[: i + 1])
+                    sequences[i].add(seq)
+            var_rand = random.Random(3)
+            self._sequences = []
+            for seq in sequences:
+                seq2 = sorted(seq)
+                var_rand.shuffle(seq2)
+                self._sequences += seq2[: self.max_variations]
+            var_rand.shuffle(self._sequences)
+            self._sequences = self._sequences[: self.max_variations]
+        return self._sequences
 
     def init_episode(self, index: int) -> List[str]:
         for tp in self.target_topPlates:
@@ -90,14 +99,11 @@ class PushButtons(Task):
         self.color_names = []
         self.color_rgbs = []
         self.chosen_colors = []
-        i = 0
-        for b in self.target_buttons:
-            color_name, color_rgb = button_colors[i]
+        for (color_name, color_rgb), b in zip(button_colors, self.target_buttons):
             self.color_names.append(color_name)
             self.color_rgbs.append(color_rgb)
             self.chosen_colors.append((color_name, color_rgb))
             b.set_color(list(color_rgb))
-            i += 1
 
         # for task success, all button to push must have green color RGB
         self.success_conditions = []
