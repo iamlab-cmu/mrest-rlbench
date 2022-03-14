@@ -1,3 +1,4 @@
+from pyrep.const import ConfigurationPathAlgorithms as Algos
 from pyrep.objects.object import Object
 from pyrep.robots.configuration_paths.arm_configuration_path import (
     ArmConfigurationPath)
@@ -15,6 +16,7 @@ class Waypoint(object):
         self._linear_only = False
         self._start_of_path_func = start_of_path_func
         self._end_of_path_func = end_of_path_func
+        self.skip = False
         if len(self._ext) > 0:
             self._ignore_collisions = 'ignore_collision' in self._ext
             self._linear_only = 'linear' in self._ext
@@ -53,7 +55,11 @@ class Point(Waypoint):
             path = arm.get_path(self._waypoint.get_position(),
                                 euler=self._waypoint.get_orientation(),
                                 ignore_collisions=(self._ignore_collisions or
-                                                   ignore_collisions))
+                                                   ignore_collisions),
+                                trials=100,
+                                max_configs=10,
+                                trials_per_goal=10,
+                                algorithm=Algos.RRTConnect)
         return path
 
 

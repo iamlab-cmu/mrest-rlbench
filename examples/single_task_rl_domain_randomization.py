@@ -1,20 +1,22 @@
-from rlbench import DomainRandomizationEnvironment
+import numpy as np
+
+from rlbench import Environment
+from rlbench import ObservationConfig
 from rlbench import RandomizeEvery
 from rlbench import VisualRandomizationConfig
-from rlbench import ArmActionMode
-from rlbench import ObservationConfig
-from rlbench.action_modes import ActionMode
+from rlbench.action_modes.action_mode import MoveArmThenGripper
+from rlbench.action_modes.arm_action_modes import JointVelocity
+from rlbench.action_modes.gripper_action_modes import Discrete
 from rlbench.tasks import ReachTarget
-import numpy as np
 
 
 class Agent(object):
 
-    def __init__(self, action_size):
-        self.action_size = action_size
+    def __init__(self, action_shape):
+        self.action_shape = action_shape
 
     def act(self, obs):
-        arm = np.random.normal(0.0, 0.1, size=(self.action_size - 1,))
+        arm = np.random.normal(0.0, 0.1, size=(self.action_shape[0] - 1,))
         gripper = [1.0]  # Always open
         return np.concatenate([arm, gripper], axis=-1)
 
@@ -26,8 +28,9 @@ obs_config.set_all(True)
 rand_config = VisualRandomizationConfig(
     image_directory='../tests/unit/assets/textures')
 
-action_mode = ActionMode(ArmActionMode.ABS_JOINT_VELOCITY)
-env = DomainRandomizationEnvironment(
+action_mode = MoveArmThenGripper(
+        arm_action_mode=JointVelocity(), gripper_action_mode=Discrete())
+env = Environment(
     action_mode, obs_config=obs_config, headless=False,
     randomize_every=RandomizeEvery.EPISODE, frequency=1,
     visual_randomization_config=rand_config
@@ -36,7 +39,7 @@ env.launch()
 
 task = env.get_task(ReachTarget)
 
-agent = Agent(env.action_size)
+agent = Agent(env.action_shape)
 
 training_steps = 120
 episode_length = 20
