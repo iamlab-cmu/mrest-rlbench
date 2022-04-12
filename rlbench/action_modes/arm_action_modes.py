@@ -209,6 +209,8 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                                 s))]
                 [s.set_collidable(False) for s in colliding_shapes]
 
+        # import ipdb
+        # ipdb.set_trace()
         try:
             path = scene.robot.arm.get_path(
                 action[:3],
@@ -227,14 +229,23 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
             raise InvalidActionError(
                 'A path could not be found. Most likely due to the target '
                 'being inaccessible or a collison was detected.') from e
+        # DEBUG
+        observations = []
+
         done = False
         while not done:
             done = path.step()
             scene.step()
+
+            # DEBUG
+            # observations.append(scene.get_observation())
+
             success, terminate = scene.task.success()
             # If the task succeeds while traversing path, then break early
             if success:
                 break
+
+        return observations
 
     def action_shape(self, scene: Scene) -> tuple:
         return 7,
