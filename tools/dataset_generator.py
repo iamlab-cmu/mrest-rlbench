@@ -38,6 +38,8 @@ flags.DEFINE_integer('episodes_per_task', 10,
                      'The number of episodes to collect per task.')
 flags.DEFINE_integer('variations', -1,
                      'Number of variations to collect per task. -1 for all.')
+flags.DEFINE_integer('offset', 0,
+                     'First variation id.')
 
 
 def check_and_make(dir):
@@ -232,7 +234,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
             if my_variation_count >= var_target:
                 # If we have reached the required number of variations for this
                 # task, then move on to the next task.
-                variation_count.value = my_variation_count = 0
+                variation_count.value = my_variation_count = FLAGS.offset
                 task_index.value += 1
 
             variation_count.value += 1
@@ -265,6 +267,9 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
                   '// Variation:', my_variation_count, '// Demo:', ex_idx)
             attempts = 10
             while attempts > 0:
+                episode_path = os.path.join(episodes_path, EPISODE_FOLDER % ex_idx)
+                if os.path.exists(episode_path):
+                    break
                 try:
                     # TODO: for now we do the explicit looping.
                     demo, = task_env.get_demos(
@@ -284,7 +289,6 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
                     tasks_with_problems += problem
                     abort_variation = True
                     break
-                episode_path = os.path.join(episodes_path, EPISODE_FOLDER % ex_idx)
                 with file_lock:
                     save_demo(demo, episode_path)
                 break
@@ -314,7 +318,7 @@ def main(argv):
     file_lock = manager.Lock()
 
     task_index = manager.Value('i', 0)
-    variation_count = manager.Value('i', 0)
+    variation_count = manager.Value('i', FLAGS.offset)
     lock = manager.Lock()
 
     check_and_make(FLAGS.save_path)
