@@ -209,8 +209,6 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                                 s))]
                 [s.set_collidable(False) for s in colliding_shapes]
 
-        # import ipdb
-        # ipdb.set_trace()
         try:
             path = scene.robot.arm.get_path(
                 action[:3],

@@ -69,6 +69,9 @@ class PushButtons(Task):
 
     @property
     def sequences(self) -> List[Tuple[Color, ...]]:
+        """
+        We create sequences by enforcing the probability of variations with 1 or 2 buttons given a limited budget of variations.
+        """
         if self._sequences is None:
             sequences = [set(), set(), set()]
             for col in itertools.permutations(self.colors, self.num_buttons):
@@ -109,6 +112,7 @@ class PushButtons(Task):
         for i in range(self.buttons_to_push):
             self.success_conditions.append(self.goal_conditions[i])
 
+        # and the order should be strictly followed 
         self.register_success_conditions(
             [ConditionSet(self.success_conditions, True, False)]
         )

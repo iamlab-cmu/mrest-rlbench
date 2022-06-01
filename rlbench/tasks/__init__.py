@@ -51,6 +51,8 @@ from rlbench.tasks.pour_from_cup_to_cup import PourFromCupToCup
 from rlbench.tasks.press_switch import PressSwitch
 from rlbench.tasks.push_button import PushButton
 from rlbench.tasks.push_buttons import PushButtons
+from rlbench.tasks.push_buttons2 import PushButtons2
+from rlbench.tasks.push_buttons3 import PushButtons3
 from rlbench.tasks.put_all_groceries_in_cupboard import \
     PutAllGroceriesInCupboard
 from rlbench.tasks.put_books_on_bookshelf import PutBooksOnBookshelf
@@ -103,6 +105,7 @@ from rlbench.tasks.take_umbrella_out_of_umbrella_stand import \
 from rlbench.tasks.take_usb_out_of_computer import TakeUsbOutOfComputer
 from rlbench.tasks.toilet_seat_down import ToiletSeatDown
 from rlbench.tasks.toilet_seat_up import ToiletSeatUp
+from rlbench.tasks.tower import Tower
 from rlbench.tasks.turn_oven_on import TurnOvenOn
 from rlbench.tasks.turn_tap import TurnTap
 from rlbench.tasks.tv_on import TvOn
