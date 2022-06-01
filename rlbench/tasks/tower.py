@@ -17,7 +17,6 @@ Color = Tuple[str, Tuple[float, float, float]]
 class Tower(Task):
     max_variations = 200
     num_target_blocks = 4
-    num_distractors = 4
     _sequences: Optional[List[Tuple[Color, ...]]] = None
 
     @property
@@ -44,19 +43,16 @@ class Tower(Task):
         return self._sequences
 
     def init_task(self) -> None:
-        assert len(colors) >= self.num_target_blocks + self.num_distractors
+        assert len(colors) >= self.num_target_blocks
 
         self.blocks_stacked = 0
         self.target_blocks = [
             Shape("stack_blocks_target%d" % i) for i in range(self.num_target_blocks)
         ]
-        self.distractors = [
-            Shape("stack_blocks_distractor%d" % i) for i in range(self.num_distractors)
-        ]
 
         self.boundaries = [Shape("stack_blocks_boundary%d" % i) for i in range(4)]
 
-        self.register_graspable_objects(self.target_blocks + self.distractors)
+        self.register_graspable_objects(self.target_blocks)
 
         self.register_waypoint_ability_start(0, self._move_above_next_target)
         self.register_waypoint_ability_start(3, self._move_above_drop_zone)
@@ -87,22 +83,20 @@ class Tower(Task):
         self.blocks_stacked = 0
 
         # Colorize other blocks with other colors
-        num_non_targets = (
-            self.num_distractors + self.num_target_blocks - self.blocks_to_stack
-        )
+        num_non_targets = self.num_target_blocks - self.blocks_to_stack
         spare_colors = [c for c in colors if c not in self.block_colors]
         color_choice_indexes = np.random.choice(
             range(len(spare_colors)), size=num_non_targets, replace=False
         )
         non_target_index = 0
-        spare_blocks = self.target_blocks[self.blocks_to_stack :] + self.distractors
+        spare_blocks = self.target_blocks[self.blocks_to_stack :]
         for block in spare_blocks:
             _, color_rgb = spare_colors[color_choice_indexes[non_target_index]]
             block.set_color(list(color_rgb))
             non_target_index += 1
 
         b = SpawnBoundary(self.boundaries)
-        for block in self.target_blocks + self.distractors:
+        for block in self.target_blocks:
             b.sample(block, min_distance=0.1)
 
         # step by step
