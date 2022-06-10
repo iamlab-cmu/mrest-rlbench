@@ -102,6 +102,7 @@ class Tower(Task):
         # step by step
         instructions = []
         for _ in range(5):
+            instr = ""
             for i, (color, _) in enumerate(self.block_colors):
                 if i == 0:
                     instr = random.choice(
@@ -114,30 +115,31 @@ class Tower(Task):
                 else:
                     conj = random.choice([". Then", ", then"])
                     prev, _ = self.block_colors[i - 1]
-                    instr = random.choice(
+                    instr += random.choice(
                         [
                             f"stack the {color} block on top of it",
                             f"place the {color} block on top of the {prev} one",
-                            f"pick up the {color} cube and set it over the {prev} block",
+                            f"add the {color} cube",
                         ]
                     )
+            instructions.append(instr)
 
         # enumeration
         color_names = [c for c, _ in self.block_colors]
         ordered_colors = ", ".join(color_names)
         instructions += [
-            f"stack the {ordered_colors} blocks"
-            f"place the {ordered_colors} cubes on top of each other"
-            f"pick up and set down {ordered_colors} blocks on top of each other"
-            f"build a tall tower out of {ordered_colors} cubes"
-            f"arrange the {ordered_colors} blocks in a vertical stack on the table top"
-            f"set {ordered_colors} cubes on top of each other"
+            f"Stack the {ordered_colors} blocks.",
+            f"Place the {ordered_colors} cubes on top of each other.",
+            f"Pick up and set down {ordered_colors} blocks on top of each other.",
+            f"Build a tall tower out of {ordered_colors} cubes.",
+            f"Arrange the {ordered_colors} blocks in a vertical stack on the table top.",
+            f"Set {ordered_colors} cubes on top of each other."
         ]
 
         return instructions
 
     def variation_count(self) -> int:
-        return len(colors) * self.num_target_blocks
+        return self.max_variations
 
     def _move_above_next_target(self, _):
         if self.blocks_stacked >= self.blocks_to_stack:
