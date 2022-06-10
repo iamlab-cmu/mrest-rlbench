@@ -28,8 +28,9 @@ class Tower2(Task):
             sequences: List[Set[Tuple[Color, ...]]] = [
                 set() for _ in range(self.num_target_blocks)
             ]
+
             for col in itertools.permutations(colors, self.num_target_blocks):
-                for i in range(1, self.num_target_blocks + 1):
+                for i in range(self.num_target_blocks):
                     block_colors = tuple(col[: i + 1])
                     sequences[i].add(block_colors)
 
