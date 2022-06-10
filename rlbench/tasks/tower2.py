@@ -140,7 +140,7 @@ class Tower2(Task):
         return instructions
 
     def variation_count(self) -> int:
-        return len(colors) * self.num_target_blocks
+        return self.max_variations
 
     def _move_above_next_target(self, _):
         if self.blocks_stacked >= self.blocks_to_stack:
