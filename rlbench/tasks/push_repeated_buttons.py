@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import itertools
 import random
 import math
@@ -14,7 +14,7 @@ from rlbench.backend.conditions import JointCondition, ConditionSet
 Color = Tuple[str, Tuple[float, float, float]]
 
 
-class PushButtons2(Task):
+class PushRepeatedButtons(Task):
     num_buttons = 3
     max_variations = 5220
     # button top plate and wrapper will be be red before task completion
@@ -66,16 +66,16 @@ class PushButtons2(Task):
         self.register_waypoints_should_repeat(self._repeat)
 
     @property
-    def sequences(self) -> List[Tuple[Color, ...]]:
+    def sequences(self) -> List[Tuple[Tuple[Optional[int], Optional[int]], Tuple[Color, ...]]]:
         if self._sequences is None:
-            sequences = [set(), set(), set()]
+            sequences_per_button = [set(), set(), set()]
             for col in itertools.permutations(self.colors, self.num_buttons):
                 for i in range(3):
                     seq = tuple(col[: i + 1])
-                    sequences[i].add(seq)
+                    sequences_per_button[i].add(seq)
             var_rand = random.Random(3)
             sequences = []
-            for seq in sequences:
+            for seq in sequences_per_button:
                 seq2 = sorted(seq)
                 var_rand.shuffle(seq2)
                 sequences += seq2[: self.max_variations]
@@ -88,13 +88,15 @@ class PushButtons2(Task):
             for var in sequences:
                 # it doesn't work 1 single button since we dont have the final image
                 if len(var) == 1:
+                    self._sequences.append(((None, None), var))
                     continue
                 # it should not be systematic!
                 if var_rand.random() > 0.5:
+                    self._sequences.append(((None, None), var))
                     continue
                 orig_step = var_rand.randint(0, len(var) - 1)
                 new_step = var_rand.randint(0, len(var) - 1)
-                new_var = var.copy()
+                new_var = list(var).copy()
                 new_var.insert(new_step, var[orig_step])
                 self._sequences.append(((orig_step, new_step), new_var))
             self._sequences = self._sequences[: self.max_variations]
@@ -105,48 +107,56 @@ class PushButtons2(Task):
             b.set_color([0.5, 0.5, 0.5])
 
         # For each color permutation, we want to have 1, 2 or 3 buttons pushed
-        button_colors = self.sequences[index]
-        self.buttons_to_push = len(button_colors)
+        (orig_step, new_step), button_colors = self.sequences[index]
+        num_targets = len(set(button_colors))
+        self.button_indices = list(range(num_targets))
+        if orig_step is not None and new_step is not None:
+            self.button_indices.insert(new_step, self.button_indices[orig_step])
 
-        self.color_names = []
-        self.color_rgbs = []
-        self.chosen_colors = []
-        for (color_name, color_rgb), tp, w in zip(
-            button_colors, self.target_topPlates, self.target_wraps
-        ):
-            self.color_names.append(color_name)
-            self.color_rgbs.append(color_rgb)
-            self.chosen_colors.append((color_name, color_rgb))
-            w.set_color(list(color_rgb))
+        self.buttons_to_push = len(self.button_indices)
+
+        self.color_names = {}
+        self.color_rgbs = {}
+        self.chosen_colors = {}
+        for i, index in enumerate(self.button_indices):
+            color_name, color_rgb = button_colors[i]
+
+            tp = self.target_topPlates[index]
             tp.set_color(list(color_rgb))
+
+            w = self.target_wraps[index]
+            w.set_color(list(color_rgb))
+
+            self.color_names[index] = color_name
+            self.color_rgbs[index] = color_rgb
+            self.chosen_colors[index] = (color_name, color_rgb)
 
         # for task success, all button to push must have green color RGB
         self.success_conditions = []
         self.goal_conditions = []
-        for i in range(self.buttons_to_push):
-            self.goal_conditions.append(JointCondition(self.target_joints[i], 0.003))
+        for i, index in enumerate(self.button_indices):
+            self.goal_conditions.append(JointCondition(self.target_joints[index], 0.003))
             self.success_conditions.append(self.goal_conditions[i])
 
         self.register_success_conditions(
             [ConditionSet(self.success_conditions, True, False)]
         )
 
-        rtn0 = "push the %s button" % self.color_names[0]
-        rtn1 = "press the %s button" % self.color_names[0]
-        rtn2 = "push down the button with the %s base" % self.color_names[0]
-        for i in range(self.buttons_to_push):
+        rtn0 = "push the %s button" % self.color_names[self.button_indices[0]]
+        rtn1 = "press the %s button" % self.color_names[self.button_indices[0]]
+        rtn2 = "push down the button with the %s base" % self.color_names[self.button_indices[0]]
+        for i, index in enumerate(self.button_indices):
             if i == 0:
                 continue
             else:
-                rtn0 += ", then push the %s button" % self.color_names[i]
-                rtn1 += ", then press the %s button" % self.color_names[i]
-                rtn2 += ", then the %s one" % self.color_names[i]
+                rtn0 += ", then push the %s button" % self.color_names[index]
+                rtn1 += ", then press the %s button" % self.color_names[index]
+                rtn2 += ", then the %s one" % self.color_names[index]
 
         b = SpawnBoundary([self.boundaries])
         for button in self.target_buttons:
             b.sample(button, min_distance=0.1)
 
-        num_targets = len(set(button_colors))
         num_non_targets = 3 - num_targets
         spare_colors = list(
             set(self.colors) - set([self.chosen_colors[i] for i in range(num_targets)])
@@ -172,7 +182,7 @@ class PushButtons2(Task):
         return [rtn0, rtn1, rtn2]
 
     def variation_count(self) -> int:
-        return np.minimum(len(self.sequences), self.max_variations)
+        return min(np.minimum(len(self.sequences), self.max_variations), 200)
 
     def step(self) -> None:
         for i in range(len(self.target_buttons)):
@@ -193,7 +203,8 @@ class PushButtons2(Task):
             )
             raise RuntimeError("Should not be here.")
         w0 = Dummy("waypoint0")
-        x, y, z = self.target_buttons[self.buttons_pushed].get_position()
+        index = self.button_indices[self.buttons_pushed]
+        x, y, z = self.target_buttons[index].get_position()
         w0.set_position([x, y, z + 0.083])
         w0.set_orientation([math.pi, 0, math.pi])
 

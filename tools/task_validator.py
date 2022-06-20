@@ -96,10 +96,10 @@ def task_smoke(task: Task, scene: Scene, variation=-1, demos=4, success=0.50,
             except DemoError as e:
                 fails += 1
                 print(e)
-            except Exception as e:
-                # TODO: check that we don't fall through all of these cases
-                fails += 1
-                print(e)
+            # except Exception as e:
+            #     # TODO: check that we don't fall through all of these cases
+            #     fails += 1
+            #     print(e)
 
         return fails
 

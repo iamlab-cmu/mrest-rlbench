@@ -158,7 +158,7 @@ class PushButtons(Task):
         return [rtn0, rtn1, rtn2]
 
     def variation_count(self) -> int:
-        return np.minimum(len(self.sequences), self.max_variations)
+        return min(200, np.minimum(len(self.sequences), self.max_variations))
 
     def step(self) -> None:
         for i in range(len(self.target_buttons)):
