@@ -30,7 +30,7 @@ class Tower4(Task):
             ]
 
             for col in itertools.permutations(colors, self.num_target_blocks):
-                for i in range(self.num_target_blocks):
+                for i in range(1, self.num_target_blocks):
                     block_colors = tuple(col[: i + 1])
                     sequences[i].add(block_colors)
 
@@ -108,7 +108,7 @@ class Tower4(Task):
         instructions = []
         for _ in range(5):
             instr = ""
-            for i, (color, _) in enumerate(self.block_colors):
+            for i, (color, _) in enumerate(self.block_colors[1:]):
                 if i == 0:
                     instr = random.choice(
                         [

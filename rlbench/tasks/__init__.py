@@ -51,7 +51,7 @@ from rlbench.tasks.pour_from_cup_to_cup import PourFromCupToCup
 from rlbench.tasks.press_switch import PressSwitch
 from rlbench.tasks.push_button import PushButton
 from rlbench.tasks.push_buttons import PushButtons
-from rlbench.tasks.push_buttons2 import PushButtons2
+from rlbench.tasks.push_repeated_buttons import PushRepeatedButtons
 from rlbench.tasks.push_buttons3 import PushButtons3
 from rlbench.tasks.put_all_groceries_in_cupboard import \
     PutAllGroceriesInCupboard
