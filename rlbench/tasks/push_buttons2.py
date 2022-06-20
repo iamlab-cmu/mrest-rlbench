@@ -13,6 +13,7 @@ from rlbench.backend.conditions import JointCondition, ConditionSet
 
 Color = Tuple[str, Tuple[float, float, float]]
 
+
 class PushButtons2(Task):
     num_buttons = 3
     max_variations = 5220
@@ -59,10 +60,7 @@ class PushButtons2(Task):
         self.boundaries = Shape("push_buttons_boundary")
         # goal_conditions merely state joint conditions for push action for
         # each button regardless of whether the task involves pushing it
-        self.goal_conditions = [
-            JointCondition(self.target_joints[n], 0.003)
-            for n in range(self.num_buttons)
-        ]
+        self.goal_conditions = []
 
         self.register_waypoint_ability_start(0, self._move_above_next_target)
         self.register_waypoints_should_repeat(self._repeat)
@@ -76,12 +74,29 @@ class PushButtons2(Task):
                     seq = tuple(col[: i + 1])
                     sequences[i].add(seq)
             var_rand = random.Random(3)
-            self._sequences = []
+            sequences = []
             for seq in sequences:
                 seq2 = sorted(seq)
                 var_rand.shuffle(seq2)
-                self._sequences += seq2[: self.max_variations]
-            var_rand.shuffle(self._sequences)
+                sequences += seq2[: self.max_variations]
+            var_rand.shuffle(sequences)
+            sequences = sequences[: self.max_variations]
+
+            var_rand = random.Random(0)
+            self._sequences = []
+            # augment variations with duplicated steps
+            for var in sequences:
+                # it doesn't work 1 single button since we dont have the final image
+                if len(var) == 1:
+                    continue
+                # it should not be systematic!
+                if var_rand.random() > 0.5:
+                    continue
+                orig_step = var_rand.randint(0, len(var) - 1)
+                new_step = var_rand.randint(0, len(var) - 1)
+                new_var = var.copy()
+                new_var.insert(new_step, var[orig_step])
+                self._sequences.append(((orig_step, new_step), new_var))
             self._sequences = self._sequences[: self.max_variations]
         return self._sequences
 
@@ -96,7 +111,9 @@ class PushButtons2(Task):
         self.color_names = []
         self.color_rgbs = []
         self.chosen_colors = []
-        for (color_name, color_rgb), tp, w in zip(button_colors, self.target_topPlates, self.target_wraps):
+        for (color_name, color_rgb), tp, w in zip(
+            button_colors, self.target_topPlates, self.target_wraps
+        ):
             self.color_names.append(color_name)
             self.color_rgbs.append(color_rgb)
             self.chosen_colors.append((color_name, color_rgb))
@@ -105,7 +122,9 @@ class PushButtons2(Task):
 
         # for task success, all button to push must have green color RGB
         self.success_conditions = []
+        self.goal_conditions = []
         for i in range(self.buttons_to_push):
+            self.goal_conditions.append(JointCondition(self.target_joints[i], 0.003))
             self.success_conditions.append(self.goal_conditions[i])
 
         self.register_success_conditions(
@@ -127,10 +146,10 @@ class PushButtons2(Task):
         for button in self.target_buttons:
             b.sample(button, min_distance=0.1)
 
-        num_non_targets = 3 - self.buttons_to_push
+        num_targets = len(set(button_colors))
+        num_non_targets = 3 - num_targets
         spare_colors = list(
-            set(self.colors)
-            - set([self.chosen_colors[i] for i in range(self.buttons_to_push)])
+            set(self.colors) - set([self.chosen_colors[i] for i in range(num_targets)])
         )
 
         spare_color_rgbs = []
@@ -143,7 +162,7 @@ class PushButtons2(Task):
         )
         non_target_index = 0
         for i, button in enumerate(self.target_buttons):
-            if i in range(self.buttons_to_push):
+            if i < num_targets:
                 pass
             else:
                 _, rgb = spare_colors[color_choice_indexes[non_target_index]]
