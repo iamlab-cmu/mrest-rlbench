@@ -94,7 +94,7 @@ class PushRepeatedButtons(Task):
                 if var_rand.random() > 0.5:
                     self._sequences.append(((None, None), var))
                     continue
-                orig_step = var_rand.randint(0, len(var) - 1)
+                orig_step = var_rand.randint(0, len(var) - 2)
                 new_step = var_rand.randint(0, len(var) - 1)
                 new_var = list(var).copy()
                 new_var.insert(new_step, var[orig_step])
