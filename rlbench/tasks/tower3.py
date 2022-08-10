@@ -114,7 +114,7 @@ class Tower3(Task):
                         ]
                     )
                 else:
-                    conj = random.choice([". Then", ", then"])
+                    instr += random.choice([". Then ", ", then ", " ", " and "])
                     prev, _ = self.block_colors[i - 1]
                     instr += random.choice(
                         [
