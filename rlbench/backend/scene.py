@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Dict, Optional
 
 import numpy as np
 from pyrep import PyRep
@@ -523,6 +523,17 @@ class Scene(object):
             self.task.boundary_root(),
             min_rotation=min_rot, max_rotation=max_rot)
 
+    def _get_state(self) -> Dict[str, Optional[np.ndarray]]:
+        if self.task is None:
+            raise RuntimeError('Initialize the task first')
+        state = (
+            self.task.state
+            if self._obs_config.state
+            else None
+        )
+
+        return {'state': state}
+
     def _get_misc(self):
         def _get_cam_data(cam: VisionSensor, name: str):
             d = {}
@@ -539,4 +550,8 @@ class Scene(object):
         misc.update(_get_cam_data(self._cam_overhead, 'overhead_camera'))
         misc.update(_get_cam_data(self._cam_front, 'front_camera'))
         misc.update(_get_cam_data(self._cam_wrist, 'wrist_camera'))
+
+        misc.update(self._get_state())
+
         return misc
+

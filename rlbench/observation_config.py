@@ -3,17 +3,19 @@ from rlbench.noise_model import NoiseModel, Identity
 
 
 class CameraConfig(object):
-    def __init__(self,
-                 rgb=True,
-                 rgb_noise: NoiseModel=Identity(),
-                 depth=True,
-                 depth_noise: NoiseModel=Identity(),
-                 point_cloud=True,
-                 mask=True,
-                 image_size=(128, 128),
-                 render_mode=RenderMode.OPENGL3,
-                 masks_as_one_channel=True,
-                 depth_in_meters=False):
+    def __init__(
+        self,
+        rgb=True,
+        rgb_noise: NoiseModel = Identity(),
+        depth=True,
+        depth_noise: NoiseModel = Identity(),
+        point_cloud=True,
+        mask=True,
+        image_size=(128, 128),
+        render_mode=RenderMode.OPENGL3,
+        masks_as_one_channel=True,
+        depth_in_meters=False,
+    ):
         self.rgb = rgb
         self.rgb_noise = rgb_noise
         self.depth = depth
@@ -33,42 +35,40 @@ class CameraConfig(object):
 
 
 class ObservationConfig(object):
-    def __init__(self,
-                 left_shoulder_camera: CameraConfig = None,
-                 right_shoulder_camera: CameraConfig = None,
-                 overhead_camera: CameraConfig = None,
-                 wrist_camera: CameraConfig = None,
-                 front_camera: CameraConfig = None,
-                 joint_velocities=True,
-                 joint_velocities_noise: NoiseModel=Identity(),
-                 joint_positions=True,
-                 joint_positions_noise: NoiseModel=Identity(),
-                 joint_forces=True,
-                 joint_forces_noise: NoiseModel=Identity(),
-                 gripper_open=True,
-                 gripper_pose=True,
-                 gripper_matrix=False,
-                 gripper_joint_positions=False,
-                 gripper_touch_forces=False,
-                 wrist_camera_matrix=False,
-                 record_gripper_closing=False,
-                 task_low_dim_state=False,
-                 ):
+    def __init__(
+        self,
+        left_shoulder_camera: CameraConfig = None,
+        right_shoulder_camera: CameraConfig = None,
+        overhead_camera: CameraConfig = None,
+        wrist_camera: CameraConfig = None,
+        front_camera: CameraConfig = None,
+        joint_velocities=True,
+        joint_velocities_noise: NoiseModel = Identity(),
+        joint_positions=True,
+        joint_positions_noise: NoiseModel = Identity(),
+        joint_forces=True,
+        joint_forces_noise: NoiseModel = Identity(),
+        gripper_open=True,
+        gripper_pose=True,
+        gripper_matrix=False,
+        gripper_joint_positions=False,
+        gripper_touch_forces=False,
+        wrist_camera_matrix=False,
+        record_gripper_closing=False,
+        task_low_dim_state=False,
+        state=False,
+    ):
         self.left_shoulder_camera = (
-            CameraConfig() if left_shoulder_camera is None
-            else left_shoulder_camera)
+            CameraConfig() if left_shoulder_camera is None else left_shoulder_camera
+        )
         self.right_shoulder_camera = (
-            CameraConfig() if right_shoulder_camera is None
-            else right_shoulder_camera)
+            CameraConfig() if right_shoulder_camera is None else right_shoulder_camera
+        )
         self.overhead_camera = (
-            CameraConfig() if overhead_camera is None
-            else overhead_camera)
-        self.wrist_camera = (
-            CameraConfig() if wrist_camera is None
-            else wrist_camera)
-        self.front_camera = (
-            CameraConfig() if front_camera is None
-            else front_camera)
+            CameraConfig() if overhead_camera is None else overhead_camera
+        )
+        self.wrist_camera = CameraConfig() if wrist_camera is None else wrist_camera
+        self.front_camera = CameraConfig() if front_camera is None else front_camera
         self.joint_velocities = joint_velocities
         self.joint_velocities_noise = joint_velocities_noise
         self.joint_positions = joint_positions
@@ -83,6 +83,7 @@ class ObservationConfig(object):
         self.wrist_camera_matrix = wrist_camera_matrix
         self.record_gripper_closing = record_gripper_closing
         self.task_low_dim_state = task_low_dim_state
+        self.state = state
 
     def set_all(self, value: bool):
         self.set_all_high_dim(value)
