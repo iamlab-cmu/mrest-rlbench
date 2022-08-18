@@ -9,9 +9,11 @@ from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.conditions import JointCondition, ConditionSet
+from rlbench.const import state_size
 
 
 Color = Tuple[str, Tuple[float, float, float]]
+
 
 class PushButtons(Task):
     num_buttons = 3
@@ -112,7 +114,7 @@ class PushButtons(Task):
         for i in range(self.buttons_to_push):
             self.success_conditions.append(self.goal_conditions[i])
 
-        # and the order should be strictly followed 
+        # and the order should be strictly followed
         self.register_success_conditions(
             [ConditionSet(self.success_conditions, True, False)]
         )
@@ -186,3 +188,29 @@ class PushButtons(Task):
     def _repeat(self):
         self.buttons_pushed += 1
         return self.buttons_pushed < self.buttons_to_push
+
+    @property
+    def state(self) -> np.ndarray:
+        """
+        Return a vector containing information for all objects in the scene
+        """
+        if not hasattr(self, "target_topPlates"):
+            raise RuntimeError("Please initialize the task first")
+
+        # sort objects according to their x coord
+        shapes = sorted(self.target_topPlates, key=_get_x_coord_from_shape)
+
+        info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
+
+        state = np.zeros(state_size)
+        state[: info.size] = info
+
+        return state
+
+
+def _get_x_coord_from_shape(shape: Shape) -> float:
+    return float(shape.get_position()[0])
+
+
+def _get_shape_pose(shape: Shape) -> np.ndarray:
+    return np.concatenate([shape.get_position(), shape.get_quaternion()])

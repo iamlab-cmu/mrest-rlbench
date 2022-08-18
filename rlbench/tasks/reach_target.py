@@ -9,33 +9,38 @@ from rlbench.backend.conditions import DetectedCondition
 
 
 class ReachTarget(Task):
-
     def init_task(self) -> None:
-        self.target = Shape('target')
-        self.distractor0 = Shape('distractor0')
-        self.distractor1 = Shape('distractor1')
-        self.boundaries = Shape('boundary')
-        success_sensor = ProximitySensor('success')
+        self.target = Shape("target")
+        self.distractor0 = Shape("distractor0")
+        self.distractor1 = Shape("distractor1")
+        self.boundaries = Shape("boundary")
+        success_sensor = ProximitySensor("success")
         self.register_success_conditions(
-            [DetectedCondition(self.robot.arm.get_tip(), success_sensor)])
+            [DetectedCondition(self.robot.arm.get_tip(), success_sensor)]
+        )
 
     def init_episode(self, index: int) -> List[str]:
         color_name, color_rgb = colors[index]
         self.target.set_color(color_rgb)
         color_choices = np.random.choice(
             list(range(index)) + list(range(index + 1, len(colors))),
-            size=2, replace=False)
+            size=2,
+            replace=False,
+        )
         for ob, i in zip([self.distractor0, self.distractor1], color_choices):
             name, rgb = colors[i]
             ob.set_color(rgb)
         b = SpawnBoundary([self.boundaries])
         for ob in [self.target, self.distractor0, self.distractor1]:
-            b.sample(ob, min_distance=0.2,
-                     min_rotation=(0, 0, 0), max_rotation=(0, 0, 0))
+            b.sample(
+                ob, min_distance=0.2, min_rotation=(0, 0, 0), max_rotation=(0, 0, 0)
+            )
 
-        return ['reach the %s target' % color_name,
-                'touch the %s ball with the panda gripper' % color_name,
-                'reach the %s sphere' %color_name]
+        return [
+            "reach the %s target" % color_name,
+            "touch the %s ball with the panda gripper" % color_name,
+            "reach the %s sphere" % color_name,
+        ]
 
     def variation_count(self) -> int:
         return len(colors)
@@ -49,3 +54,30 @@ class ReachTarget(Task):
 
     def is_static_workspace(self) -> bool:
         return True
+
+    @property
+    def state(self) -> np.ndarray:
+        """
+        Return a 28 dimensional vector containing information for all objects in the scene
+        """
+        if not hasattr(self, "target"):
+            raise RuntimeError("Please initialize the task first")
+
+        shapes = [self.target, self.distractor1, self.distractor0]
+        # sort objects according to their x coord
+        shapes = sorted(shapes, key=_get_x_coord_from_shape)
+
+        info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
+
+        state = np.zeros(28)
+        state[: info.size] = info
+
+        return state
+
+
+def _get_x_coord_from_shape(shape: Shape) -> float:
+    return float(shape.get_position()[0])
+
+
+def _get_shape_pose(shape: Shape) -> np.ndarray:
+    return np.concatenate([shape.get_position(), shape.get_quaternion()])

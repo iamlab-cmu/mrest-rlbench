@@ -9,7 +9,7 @@ from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition, ConditionSet, Condition
 from rlbench.backend.conditions import NothingGrasped
 from rlbench.backend.spawn_boundary import SpawnBoundary
-from rlbench.const import colors
+from rlbench.const import colors, state_size
 
 Color = Tuple[str, Tuple[float, float, float]]
 
@@ -134,7 +134,7 @@ class Tower3(Task):
             f"Pick up and set down {ordered_colors} blocks on top of each other.",
             f"Build a tall tower out of {ordered_colors} cubes.",
             f"Arrange the {ordered_colors} blocks in a vertical stack on the table top.",
-            f"Set {ordered_colors} cubes on top of each other."
+            f"Set {ordered_colors} cubes on top of each other.",
         ]
 
         return instructions
@@ -166,3 +166,29 @@ class Tower3(Task):
     def _repeat(self):
         self.blocks_stacked += 1
         return self.blocks_stacked < self.blocks_to_stack
+
+    @property
+    def state(self) -> np.ndarray:
+        """
+        Return a vector containing information for all objects in the scene
+        """
+        if not hasattr(self, "target_blocks"):
+            raise RuntimeError("Please initialize the task first")
+
+        # sort objects according to their x coord
+        shapes = sorted(self.target_blocks, key=_get_x_coord_from_shape)
+
+        info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
+
+        state = np.zeros(state_size)
+        state[: info.size] = info
+
+        return state
+
+
+def _get_x_coord_from_shape(shape: Shape) -> float:
+    return float(shape.get_position()[0])
+
+
+def _get_shape_pose(shape: Shape) -> np.ndarray:
+    return np.concatenate([shape.get_position(), shape.get_quaternion()])
