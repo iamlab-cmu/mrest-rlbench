@@ -2,7 +2,7 @@ from typing import List, Tuple
 import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
-from rlbench.const import colors
+from rlbench.const import colors, state_size
 from rlbench.backend.task import Task
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.conditions import DetectedCondition
@@ -58,7 +58,7 @@ class ReachTarget(Task):
     @property
     def state(self) -> np.ndarray:
         """
-        Return a 28 dimensional vector containing information for all objects in the scene
+        Return a vector containing information for all objects in the scene
         """
         if not hasattr(self, "target"):
             raise RuntimeError("Please initialize the task first")
@@ -67,9 +67,9 @@ class ReachTarget(Task):
         # sort objects according to their x coord
         shapes = sorted(shapes, key=_get_x_coord_from_shape)
 
-        info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
+        info = np.concatenate([_get_shape_info(shape) for shape in shapes])
 
-        state = np.zeros(28)
+        state = np.zeros(state_size)
         state[: info.size] = info
 
         return state
@@ -79,5 +79,6 @@ def _get_x_coord_from_shape(shape: Shape) -> float:
     return float(shape.get_position()[0])
 
 
-def _get_shape_pose(shape: Shape) -> np.ndarray:
-    return np.concatenate([shape.get_position(), shape.get_quaternion()])
+def _get_shape_info(shape: Shape) -> np.ndarray:
+    color = np.asarray(shape.get_color())
+    return np.concatenate([shape.get_position(), shape.get_quaternion(), color])

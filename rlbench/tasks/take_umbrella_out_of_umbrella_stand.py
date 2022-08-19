@@ -4,6 +4,7 @@ from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition
+from rlbench.const import state_size
 
 
 class TakeUmbrellaOutOfUmbrellaStand(Task):
@@ -37,7 +38,7 @@ class TakeUmbrellaOutOfUmbrellaStand(Task):
 
         info = _get_shape_pose(shape)
 
-        state = np.zeros(28)
+        state = np.zeros(state_size)
         state[: info.size] = info
 
         return state

@@ -68,7 +68,7 @@ class PickAndLift(Task):
         # sort objects according to their x coord
         shapes = sorted(shapes, key=_get_x_coord_from_shape)
 
-        info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
+        info = np.concatenate([_get_shape_info(shape) for shape in shapes])
 
         state = np.zeros(state_size)
         state[: info.size] = info
@@ -80,5 +80,6 @@ def _get_x_coord_from_shape(shape: Shape) -> float:
     return float(shape.get_position()[0])
 
 
-def _get_shape_pose(shape: Shape) -> np.ndarray:
-    return np.concatenate([shape.get_position(), shape.get_quaternion()])
+def _get_shape_info(shape: Shape) -> np.ndarray:
+    color = np.asarray(shape.get_color())
+    return np.concatenate([shape.get_position(), shape.get_quaternion(), color])
