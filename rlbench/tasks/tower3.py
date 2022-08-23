@@ -176,7 +176,7 @@ class Tower3(Task):
             raise RuntimeError("Please initialize the task first")
 
         # sort objects according to their x coord
-        shapes = sorted(self.target_blocks, key=_get_x_coord_from_shape)
+        shapes = sorted(self.target_blocks, key=_get_color)
 
         info = np.concatenate([_get_shape_pose(shape) for shape in shapes])
 
@@ -186,8 +186,8 @@ class Tower3(Task):
         return state
 
 
-def _get_x_coord_from_shape(shape: Shape) -> float:
-    return float(shape.get_position()[0])
+def _get_color(shape: Shape) -> List[float]:
+    return list(shape.get_color())
 
 
 def _get_shape_pose(shape: Shape) -> np.ndarray:

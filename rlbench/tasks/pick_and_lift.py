@@ -66,7 +66,7 @@ class PickAndLift(Task):
 
         shapes = [self.target_block, *self.distractors]
         # sort objects according to their x coord
-        shapes = sorted(shapes, key=_get_x_coord_from_shape)
+        shapes = sorted(shapes, key=_get_color)
 
         info = np.concatenate([_get_shape_info(shape) for shape in shapes])
 
@@ -76,8 +76,8 @@ class PickAndLift(Task):
         return state
 
 
-def _get_x_coord_from_shape(shape: Shape) -> float:
-    return float(shape.get_position()[0])
+def _get_color(shape: Shape) -> List[float]:
+    return list(shape.get_color())
 
 
 def _get_shape_info(shape: Shape) -> np.ndarray:

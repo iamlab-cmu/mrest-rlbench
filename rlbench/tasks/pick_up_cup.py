@@ -64,7 +64,7 @@ class PickUpCup(Task):
 
         shapes = [self.cup1_visual, self.cup2_visual]
         # sort objects according to their x coord
-        shapes = sorted(shapes, key=_get_x_coord_from_shape)
+        shapes = sorted(shapes, key=_get_color)
 
         info = np.concatenate([_get_shape_info(shape) for shape in shapes])
 
@@ -74,8 +74,8 @@ class PickUpCup(Task):
         return state
 
 
-def _get_x_coord_from_shape(shape: Shape) -> float:
-    return float(shape.get_position()[0])
+def _get_color(shape: Shape) -> List[float]:
+    return list(shape.get_color())
 
 
 def _get_shape_info(shape: Shape) -> np.ndarray:
