@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 from pyrep.objects.proximity_sensor import ProximitySensor
+from pyrep.objects.object import Object
 from pyrep.objects.shape import Shape
 from rlbench.backend.conditions import ConditionSet, DetectedCondition, NothingGrasped
 from rlbench.backend.spawn_boundary import SpawnBoundary

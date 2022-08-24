@@ -2,6 +2,7 @@ from typing import List, Tuple
 import math
 import numpy as np
 from pyrep.objects.shape import Shape
+from pyrep.objects.object import Object
 from pyrep.objects.dummy import Dummy
 from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.task import Task
