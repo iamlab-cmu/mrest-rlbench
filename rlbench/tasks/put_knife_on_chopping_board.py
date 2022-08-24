@@ -5,7 +5,7 @@ from pyrep.objects.shape import Shape
 from rlbench.backend.conditions import ConditionSet, DetectedCondition, NothingGrasped
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.task import Task
-from rlbench.const import state_size
+from rlbench.const import state_size, shape_size
 
 
 class PutKnifeOnChoppingBoard(Task):
@@ -65,5 +65,8 @@ def _get_x_coord_from_shape(shape: Shape) -> float:
     return float(shape.get_position()[0])
 
 
-def _get_shape_pose(shape: Shape) -> np.ndarray:
-    return np.concatenate([shape.get_position(), shape.get_quaternion()])
+def _get_shape_pose(shape: Object) -> np.ndarray:
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion()])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))

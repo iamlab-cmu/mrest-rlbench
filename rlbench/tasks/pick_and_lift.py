@@ -5,7 +5,7 @@ from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition, ConditionSet, GraspedCondition
 from rlbench.backend.spawn_boundary import SpawnBoundary
-from rlbench.const import colors, state_size
+from rlbench.const import colors, state_size, shape_size
 
 
 class PickAndLift(Task):
@@ -82,4 +82,7 @@ def _get_color(shape: Shape) -> List[float]:
 
 def _get_shape_info(shape: Shape) -> np.ndarray:
     color = np.asarray(shape.get_color())
-    return np.concatenate([shape.get_position(), shape.get_quaternion(), color])
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion(), color])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))

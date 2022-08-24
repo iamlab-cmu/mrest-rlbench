@@ -7,7 +7,7 @@ from pyrep.objects.proximity_sensor import ProximitySensor
 from rlbench.backend.task import Task
 from rlbench.backend.conditions import DetectedCondition, NothingGrasped
 from rlbench.backend.spawn_boundary import SpawnBoundary
-from rlbench.const import state_size
+from rlbench.const import state_size, shape_size
 
 NUM_SHELVES_IN_SAFE = 3
 
@@ -154,4 +154,7 @@ def _get_x_coord_from_shape(shape: Shape) -> float:
 
 
 def _get_shape_pose(shape: Shape) -> np.ndarray:
-    return np.concatenate([shape.get_position(), shape.get_quaternion()])
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion()])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))

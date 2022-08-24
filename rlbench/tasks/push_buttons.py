@@ -9,7 +9,7 @@ from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.conditions import JointCondition, ConditionSet
-from rlbench.const import state_size
+from rlbench.const import state_size, shape_size
 
 
 Color = Tuple[str, Tuple[float, float, float]]

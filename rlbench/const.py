@@ -43,5 +43,5 @@ SUPPORTED_ROBOTS = {
     "ur5": (UR5, Robotiq85Gripper, 6),
 }
 
-state_size = 48
-
+state_size = 60
+shape_size = 10

@@ -81,4 +81,7 @@ def _get_color(shape: Shape) -> List[float]:
 
 def _get_shape_info(shape: Shape) -> np.ndarray:
     color = np.asarray(shape.get_color())
-    return np.concatenate([shape.get_position(), shape.get_quaternion(), color])
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion(), color])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))

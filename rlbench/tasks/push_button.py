@@ -1,10 +1,11 @@
 from typing import List
 import numpy as np
 from pyrep.objects.shape import Shape
+from pyrep.objects.object import Object
 from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
 from rlbench.backend.conditions import JointCondition, ConditionSet
-from rlbench.const import state_size
+from rlbench.const import state_size, shape_size
 
 # button top plate and wrapper will be be red before task completion
 # and be changed to cyan upon success of task, so colors list used to randomly vary colors of
@@ -72,9 +73,14 @@ class PushButton(Task):
         if not hasattr(self, "target_button"):
             raise RuntimeError("Please initialize the button first")
 
-        info = np.concatenate(
-            [self.target_topPlate.get_position(), self.target_topPlate.get_quaternion()]
-        )
+        info = _get_shape_pose(self.target_button)
         state = np.zeros(state_size)
         state[: info.size] = info
         return state
+
+
+def _get_shape_pose(shape: Object) -> np.ndarray:
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion()])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))
