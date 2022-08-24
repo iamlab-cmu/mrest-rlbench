@@ -67,6 +67,7 @@ class PickAndLift(Task):
         shapes = [self.target_block, *self.distractors]
         # sort objects according to their x coord
         shapes = sorted(shapes, key=_get_color)
+        shapes.insert(0, self.success_detector)
 
         info = np.concatenate([_get_shape_info(shape) for shape in shapes])
 
@@ -81,7 +82,7 @@ def _get_color(shape: Shape) -> List[float]:
 
 
 def _get_shape_info(shape: Shape) -> np.ndarray:
-    color = np.asarray(shape.get_color())
+    color = np.asarray(shape.get_color()) if hasattr(shape, 'get_color') else np.array([0,0,0])
     shape_state = np.concatenate([shape.get_position(), shape.get_quaternion(), color])
     pad_length = shape_size - shape_state.size
     assert pad_length >= 0

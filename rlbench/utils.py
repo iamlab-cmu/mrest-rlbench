@@ -90,15 +90,15 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
         front_mask_f = join(example_path, FRONT_MASK_FOLDER)
 
         num_steps = len(obs)
+        # if obs_config.left_shoulder_camera.rgb:
 
-        if not (num_steps == len(listdir(l_sh_rgb_f)) == len(
-                listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
-                listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
-                listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
-                listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
-                listdir(front_depth_f))):
-                    print(num_steps, len(listdir(l_sh_rgb_f)), len( listdir(l_sh_depth_f)), len(listdir(r_sh_rgb_f)), len( listdir(r_sh_depth_f)), len(listdir(oh_rgb_f)), len( listdir(oh_depth_f)), len(listdir(wrist_rgb_f)), len( listdir(wrist_depth_f)), len(listdir(front_rgb_f)), len( listdir(front_depth_f)))
-                    raise RuntimeError(f'Broken dataset assumption: {example_path}')
+        #         listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
+        #         listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
+        #         listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
+        #         listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
+        #         listdir(front_depth_f))):
+        #             print(num_steps, len(listdir(l_sh_rgb_f)), len( listdir(l_sh_depth_f)), len(listdir(r_sh_rgb_f)), len( listdir(r_sh_depth_f)), len(listdir(oh_rgb_f)), len( listdir(oh_depth_f)), len(listdir(wrist_rgb_f)), len( listdir(wrist_depth_f)), len(listdir(front_rgb_f)), len( listdir(front_depth_f)))
+        #             raise RuntimeError(f'Broken dataset assumption: {example_path}')
 
         for i in range(num_steps):
             si = IMAGE_FORMAT % i
