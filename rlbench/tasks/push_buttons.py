@@ -5,6 +5,7 @@ import math
 import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.dummy import Dummy
+from pyrep.objects.object import Object
 from pyrep.objects.joint import Joint
 from rlbench.backend.task import Task
 from rlbench.backend.spawn_boundary import SpawnBoundary
@@ -212,5 +213,8 @@ def _get_color(shape: Shape) -> List[float]:
     return list(shape.get_color())
 
 
-def _get_shape_pose(shape: Shape) -> np.ndarray:
-    return np.concatenate([shape.get_position(), shape.get_quaternion()])
+def _get_shape_pose(shape: Object) -> np.ndarray:
+    shape_state = np.concatenate([shape.get_position(), shape.get_quaternion()])
+    pad_length = shape_size - shape_state.size
+    assert pad_length >= 0
+    return np.pad(shape_state, (0, pad_length))
