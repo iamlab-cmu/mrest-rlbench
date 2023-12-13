@@ -146,7 +146,8 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
     def __init__(self,
                  absolute_mode: bool = True,
                  frame: str = 'world',
-                 collision_checking: bool = False):
+                 collision_checking: bool = False,
+                 only_pos: bool = False):
         """
         If collision check is enbled, and an object is grasped, then we
 
@@ -161,6 +162,7 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         self._robot_shapes = None
         if frame not in ['world', 'end effector']:
             raise ValueError("Expected frame to one of: 'world, 'end effector'")
+        self._only_pos = only_pos
 
     def _quick_boundary_check(self, scene: Scene, action: np.ndarray):
         pos_to_check = action[:3]
@@ -182,10 +184,18 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
         return pose
 
     def action(self, scene: Scene, action: np.ndarray):
-        assert_action_shape(action, (7,))
-        assert_unit_quaternion(action[3:])
+        if self._only_pos:
+            assert_action_shape(action, (3,))
+            if self._absolute_mode:
+                action = np.r_[action, [0, 1, 0, 0.01]]
+            else:
+                action = np.r_[action, [0, 0, 0, 1]]
+        else:
+            assert_action_shape(action, (7,))
+            assert_unit_quaternion(action[3:])
         if not self._absolute_mode and self._frame != 'end effector':
             action = calculate_delta_pose(scene.robot, action)
+
         relative_to = None if self._frame == 'world' else scene.robot.arm.get_tip()
         self._quick_boundary_check(scene, action)
 
@@ -210,6 +220,10 @@ class EndEffectorPoseViaPlanning(ArmActionMode):
                 [s.set_collidable(False) for s in colliding_shapes]
 
         try:
+            # for s in scene.pyrep.get_objects_in_tree(object_type=ObjectType.SHAPE):
+            #      if s.get_name() == 'square_base':
+            #         s.set_collidable(False)
+
             path = scene.robot.arm.get_path(
                 action[:3],
                 quaternion=action[3:],
@@ -267,7 +281,8 @@ class EndEffectorPoseViaIK(ArmActionMode):
     def __init__(self,
                  absolute_mode: bool = True,
                  frame: str = 'world',
-                 collision_checking: bool = False):
+                 collision_checking: bool = False,
+                 only_pos: bool = False):
         """
         Args:
             absolute_mode: If we should opperate in 'absolute', or 'delta' mode.
@@ -281,9 +296,15 @@ class EndEffectorPoseViaIK(ArmActionMode):
             raise ValueError(
                 "Expected frame to one of: 'world, 'end effector'")
 
+        self._only_pos = only_pos
+
     def action(self, scene: Scene, action: np.ndarray):
-        assert_action_shape(action, (7,))
-        assert_unit_quaternion(action[3:])
+        if self._only_pos:
+            assert_action_shape(action, (3,))
+            action = np.r_[action, [0, 0, 0, 1]]
+        else:
+            assert_action_shape(action, (7,))
+            assert_unit_quaternion(action[3:])
         if not self._absolute_mode and self._frame != 'end effector':
             action = calculate_delta_pose(scene.robot, action)
         relative_to = None if self._frame == 'world' else scene.robot.arm.get_tip()
@@ -301,6 +322,7 @@ class EndEffectorPoseViaIK(ArmActionMode):
         prev_values = None
         # Move until reached target joint positions or until we stop moving
         # (e.g. when we collide wth something)
+        iters = 0
         while not done:
             scene.step()
             cur_positions = scene.robot.arm.get_joint_positions()
@@ -311,6 +333,9 @@ class EndEffectorPoseViaIK(ArmActionMode):
                     cur_positions, prev_values, atol=0.001)
             prev_values = cur_positions
             done = reached or not_moving
+            iters += 1
+            if iters > 1000:
+                break
 
     def action_shape(self, scene: Scene) -> tuple:
         return 7,

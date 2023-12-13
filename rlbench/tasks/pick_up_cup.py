@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import numpy as np
 from pyrep.objects.shape import Shape
 from pyrep.objects.proximity_sensor import ProximitySensor
@@ -32,9 +32,13 @@ class PickUpCup(Task):
         self.variation_index = index
         target_color_name, target_rgb = colors[index]
 
-        random_idx = np.random.choice(len(colors))
-        while random_idx == index:
+        fixed = True
+        if fixed:
+            random_idx = 1
+        else:
             random_idx = np.random.choice(len(colors))
+            while random_idx == index:
+                random_idx = np.random.choice(len(colors))
         _, other1_rgb = colors[random_idx]
 
         self.cup1_visual.set_color(target_rgb)
@@ -42,8 +46,13 @@ class PickUpCup(Task):
         print(target_rgb, other1_rgb)
 
         self.boundary.clear()
-        self.boundary.sample(self.cup2, min_distance=0.1)
-        self.boundary.sample(self.success_sensor, min_distance=0.1)
+        self.boundary.sample(self.cup2, min_distance=0.1,
+                             min_rotation=(0.0, 0.0, 0.0),
+                             max_rotation=(0.0, 0.0, 0.0),)
+        self.boundary.sample(self.success_sensor, 
+                             min_distance=0.1,
+                             min_rotation=(0.0, 0.0, 0.0),
+                             max_rotation=(0.0, 0.0, 0.0),)
 
         return [
             "pick up the %s cup" % target_color_name,
@@ -72,6 +81,19 @@ class PickUpCup(Task):
         state[: info.size] = info
 
         return state
+
+    def base_rotation_bounds(
+        self,
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]:
+        """Defines how much the task base can rotate during episode placement.
+
+        Default is set such that it can rotate any amount on the z axis.
+
+        :return: A tuple containing the min and max (x, y, z) rotation bounds
+            (in radians).
+        """
+        # return (0.0, 0.0, np.pi/2.0), (0.0, 0.0, np.pi/2.0+0.0001)
+        return (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)
 
 
 def _get_color(shape: Shape) -> List[float]:

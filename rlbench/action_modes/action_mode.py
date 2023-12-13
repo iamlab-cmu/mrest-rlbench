@@ -39,3 +39,20 @@ class MoveArmThenGripper(ActionMode):
     def action_shape(self, scene: Scene):
         return np.prod(self.arm_action_mode.action_shape(scene)) + np.prod(
             self.gripper_action_mode.action_shape(scene))
+
+
+class MoveArmPosOnlyThenGripper(ActionMode):
+    """The arm action is first applied, followed by the gripper action. """
+
+    def action(self, scene: Scene, action: np.ndarray):
+        arm_act_size = 3
+        arm_action = np.array(action[:arm_act_size])
+        ee_action = np.array(action[arm_act_size:])
+        # DEBUG
+        observations = self.arm_action_mode.action(scene, arm_action)
+        self.gripper_action_mode.action(scene, ee_action)
+        return observations
+
+    def action_shape(self, scene: Scene):
+        return np.prod(self.arm_action_mode.action_shape(scene)) + np.prod(
+            self.gripper_action_mode.action_shape(scene))

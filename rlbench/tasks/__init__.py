@@ -114,6 +114,9 @@ from rlbench.tasks.water_plants import WaterPlants
 from rlbench.tasks.weighing_scales import WeighingScales
 from rlbench.tasks.wipe_desk import WipeDesk
 
+from rlbench.tasks.insert_onto_square_peg_mrest import InsertOntoSquarePegMrest
+from rlbench.tasks.take_usb_out_of_computer_mrest_usb_inhand import TakeUsbOutOfComputerMrestUsbInhand
+
 FS10_V1 = {
     'train': [
         ReachTarget,

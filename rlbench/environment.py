@@ -1,6 +1,6 @@
 import importlib
 from os.path import exists, dirname, abspath, join
-from typing import Type, List
+from typing import Type, List, Optional
 
 from pyrep import PyRep
 from pyrep.objects import VisionSensor
@@ -87,11 +87,13 @@ class Environment(object):
                 'should belong in the tasks/ folder' % task_name) from e
         return getattr(mod, class_name)
 
-    def launch(self):
+    def launch(self, ttt_file: Optional[str] = None):
+        if ttt_file is None:
+            ttt_file = TTT_FILE
         if self._pyrep is not None:
             raise RuntimeError('Already called launch!')
         self._pyrep = PyRep()
-        self._pyrep.launch(join(DIR_PATH, TTT_FILE), headless=self._headless)
+        self._pyrep.launch(join(DIR_PATH, ttt_file), headless=self._headless)
 
         arm_class, gripper_class, _ = SUPPORTED_ROBOTS[
             self._robot_setup]

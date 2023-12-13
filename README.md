@@ -2,6 +2,14 @@
 
 ![task grid image missing](readme_files/task_grid.png)
 
+### NOTE
+
+This is an updated branch of RLBench associated with our CoRL 2023 paper -- [Multi-Resolution Sensing for Real-Time Control with Vision-Language Models](https://openreview.net/forum?id=WuBv9-IGDUA).
+This repo focuses on low-level control for 4 different precise tasks from RLBench. Specifically, we create new versions of `insert_onto_square_peg`, `pick_and_lift_small`, `place_in_shape_sorter`, `take_usb_out`. 
+For each task we define a new version in [task_ttms folder](https://github.com/iamlab-cmu/mrest-env-deps/tree/main/precise_rlbench/rlbench/task_ttms). For more details please check our paper.
+
+---
+
 **RLBench** is an ambitious large-scale benchmark and learning environment 
 designed to facilitate research in a number of vision-guided manipulation
 research areas, including: reinforcement learning, imitation learning,

@@ -79,3 +79,17 @@ class Observation(object):
             if data is not None:
                 low_dim_data.append(data)
         return np.concatenate(low_dim_data) if len(low_dim_data) > 0 else np.array([])
+
+
+class ObservationAction(Observation):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gripper_pose_no_noise = None
+
+        # Normalized action
+        self.action_norm = None
+        self.action = None
+        self.action_low = None
+        self.action_high = None
+

@@ -20,6 +20,7 @@ class Waypoint(object):
         if len(self._ext) > 0:
             self._ignore_collisions = 'ignore_collision' in self._ext
             self._linear_only = 'linear' in self._ext
+        self._linear_only = True
 
     def get_path(self, ignore_collisions=False) -> ArmConfigurationPath:
         raise NotImplementedError()
@@ -44,13 +45,16 @@ class Waypoint(object):
 
 class Point(Waypoint):
 
-    def get_path(self, ignore_collisions=False) -> ArmConfigurationPath:
+    def get_path(self, ignore_collisions: bool = False,
+                 add_noise: bool = False, save_no_noise_path: bool = False) -> ArmConfigurationPath:
         arm = self._robot.arm
         if self._linear_only:
             path = arm.get_linear_path(self._waypoint.get_position(),
                                 euler=self._waypoint.get_orientation(),
                                 ignore_collisions=(self._ignore_collisions or
-                                                   ignore_collisions))
+                                                   ignore_collisions),
+                                add_noise=add_noise,
+                                save_no_noise_path=save_no_noise_path,)
         else:
             path = arm.get_path(self._waypoint.get_position(),
                                 euler=self._waypoint.get_orientation(),

@@ -1,6 +1,7 @@
-from typing import List, Callable, Dict, Optional
+from typing import Any, List, Callable, Dict, Optional, Mapping
 
 import numpy as np
+import time
 from pyrep import PyRep
 from pyrep.const import ObjectType
 from pyrep.errors import ConfigurationPathError
@@ -10,7 +11,7 @@ from pyrep.objects.vision_sensor import VisionSensor
 
 from rlbench.backend.exceptions import (
     WaypointError, BoundaryError, NoWaypointsError, DemoError)
-from rlbench.backend.observation import Observation
+from rlbench.backend.observation import Observation, ObservationAction
 from rlbench.backend.robot import Robot
 from rlbench.backend.spawn_boundary import SpawnBoundary
 from rlbench.backend.task import Task
@@ -18,6 +19,7 @@ from rlbench.backend.utils import rgb_handles_to_mask
 from rlbench.demo import Demo
 from rlbench.noise_model import NoiseModel
 from rlbench.observation_config import ObservationConfig, CameraConfig
+
 
 STEPS_BEFORE_EPISODE_START = 10
 
@@ -152,6 +154,10 @@ class Scene(object):
         arm, gripper = self._initial_robot_state
         self.pyrep.set_configuration_tree(arm)
         self.pyrep.set_configuration_tree(gripper)
+
+        # Used for Insert_square_on_peg task
+        self._start_arm_joint_pos = [ 0., 0.1745,  0., -np.pi/2.0, -0., np.deg2rad(112.0), 0.7854 ]
+
         self.robot.arm.set_joint_positions(self._start_arm_joint_pos, disable_dynamics=True)
         self.robot.arm.set_joint_target_velocities(
             [0] * len(self.robot.arm.joints))
@@ -165,7 +171,7 @@ class Scene(object):
             self.task.restore_state(self._initial_task_state)
         self.task.set_initial_objects_in_scene()
 
-    def get_observation(self) -> Observation:
+    def get_observation(self, obs_klass=Observation) -> Observation:
         tip = self.robot.arm.get_tip()
 
         joint_forces = None
@@ -253,7 +259,7 @@ class Scene(object):
         front_mask = get_mask(self._cam_front_mask,
                               fc_mask_fn) if fc_ob.mask else None
 
-        obs = Observation(
+        obs = obs_klass(
             left_shoulder_rgb=left_shoulder_rgb,
             left_shoulder_depth=left_shoulder_depth,
             left_shoulder_point_cloud=left_shoulder_pcd,
@@ -328,14 +334,18 @@ class Scene(object):
         self._has_init_episode = False
 
         waypoints = self.task.get_waypoints()
+        self.pyrep.step()
         if len(waypoints) == 0:
             raise NoWaypointsError(
                 'No waypoints were found.', self.task)
 
         demo = []
+        add_noise = False
         if record:
             self.pyrep.step()  # Need this here or get_force doesn't work...
             demo.append(self.get_observation())
+            if add_noise:
+                demo[-1].gripper_pose_no_noise = np.copy(demo[-1].gripper_pose)
         while True:
             success = False
             for i, point in enumerate(waypoints):
@@ -349,7 +359,14 @@ class Scene(object):
                                     and self.robot.arm.check_arm_collision(s)]
                 [s.set_collidable(False) for s in colliding_shapes]
                 try:
-                    path = point.get_path()
+                    path = point.get_path(add_noise=add_noise, save_no_noise_path=add_noise)
+                    # Visualize no-noise path and then clear it
+                    if add_noise:
+                        path.visualize_no_noise_path()
+                        self.pyrep.step()
+                        time.sleep(2)
+                        path.clear_visualization()
+
                     [s.set_collidable(True) for s in colliding_shapes]
                 except ConfigurationPathError as e:
                     [s.set_collidable(True) for s in colliding_shapes]
@@ -364,12 +381,21 @@ class Scene(object):
                 while not done:
                     done = path.step()
                     self.step()
-                    self._demo_record_step(demo, record, callable_each_step)
+                    if add_noise:
+                        gripper_pose_no_noise = path.get_no_noise_gripper_pose_at_current_path_index()
+                    else:
+                        gripper_pose_no_noise = None
+                    self._demo_record_step(demo, record, callable_each_step,
+                                           gripper_pose_no_noise=gripper_pose_no_noise)
+                    if add_noise:
+                        print(np.array_str(np.array(demo[-1].gripper_pose[:3]), precision=3, suppress_small=True), 
+                            np.array_str(np.array(demo[-1].gripper_pose_no_noise[:3]), precision=3, suppress_small=True))
                     success, term = self.task.success()
 
                 point.end_of_path()
 
                 path.clear_visualization()
+
 
                 if len(ext) > 0:
                     contains_param = False
@@ -439,6 +465,186 @@ class Scene(object):
                             self.task)
         return Demo(demo)
 
+
+    def get_demo_with_primitives(self, record: bool = True,
+                                 callable_each_step: Callable[[Observation], None] = None,
+                                 randomly_place: bool = True) -> Demo:
+        """Returns a demo (list of observations)"""
+
+        if not self._has_init_task:
+            self.init_task()
+        if not self._has_init_episode:
+            self.init_episode(self._variation_index,
+                              randomly_place=randomly_place)
+        self._has_init_episode = False
+
+        waypoints = self.task.get_waypoints()
+        self.pyrep.step()
+        if len(waypoints) == 0:
+            raise NoWaypointsError(
+                'No waypoints were found.', self.task)
+
+        demo = []
+        add_noise = False
+        if record:
+            self.pyrep.step()  # Need this here or get_force doesn't work...
+            curr_obs = self.get_observation(obs_klass=ObservationAction)
+
+        if hasattr(self.task, 'get_noise_in_waypoints'):
+            print("**** Adding noise to waypoints ****")
+            noise_in_waypoints = self.task.get_noise_in_waypoints(waypoints)
+        else:
+            noise_in_waypoints = [None for _ in range(len(waypoints))]
+
+        while True:
+            success = False
+            for i, point in enumerate(waypoints):
+
+                point.start_of_path()
+                if point.skip:
+                    continue
+                grasped_objects = self.robot.gripper.get_grasped_objects()
+                colliding_shapes = [s for s in self.pyrep.get_objects_in_tree(
+                    object_type=ObjectType.SHAPE) if s not in grasped_objects
+                                    and s not in self._robot_shapes and s.is_collidable()
+                                    and self.robot.arm.check_arm_collision(s)]
+
+                # reach_primitive = Reach(self.task, point)
+                reach_primitive_class = self.task.demo_primitive_class()
+                reach_primitive = reach_primitive_class(self.task, point, fixed_noise_in_target=noise_in_waypoints[i])
+
+                ext = point.get_ext()
+
+                done = False
+                success = False
+                primitive_steps = 0
+                while not done:
+                    # Find a path to the next step of the primitive.
+                    [s.set_collidable(False) for s in colliding_shapes]
+                    try:
+                        arm_config_path, primitive_action_dict = reach_primitive.step(self.robot)
+                    except ConfigurationPathError as e:
+                        [s.set_collidable(True) for s in colliding_shapes]
+                        raise DemoError(
+                            'Could not get a path for waypoint %d.' % i,
+                            self.task) from e
+                    
+                    arm_config_path.visualize()
+                    [s.set_collidable(True) for s in colliding_shapes]
+
+                    # Now execute the path
+                    step_done = False
+                    step_success = False
+                    while not step_done:
+                        step_done = arm_config_path.step()
+                        self.step()
+
+                    assert step_done, "Could not finish reach primitive step"
+
+                    # Record (obs, action) for this demo.
+                    self._demo_action_record_step(demo, curr_obs, primitive_action_dict)
+                    curr_obs = self.get_observation(obs_klass=ObservationAction)
+
+                    success, term = self.task.success()
+                    done = reach_primitive.done(self.robot)
+                    primitive_steps += 1
+
+                    arm_config_path.clear_visualization()
+                    print(f"Steps: {primitive_steps}, gripper: {demo[-1].gripper_open}")
+
+
+                point.end_of_path()
+
+                # # Visualize no-noise path and then clear it
+                # if add_noise:
+                #     path.visualize_no_noise_path()
+                #     self.pyrep.step()
+                #     time.sleep(2)
+                #     path.clear_visualization()
+
+                # Now do the gripper actions
+                if len(ext) > 0:
+                    contains_param = False
+                    start_of_bracket = -1
+                    gripper = self.robot.gripper
+                    if 'open_gripper(' in ext:
+                        gripper.release()
+                        start_of_bracket = ext.index('open_gripper(') + 13
+                        contains_param = ext[start_of_bracket] != ')'
+                        if not contains_param:
+                            done = False
+                            while not done:
+                                done = gripper.actuate(1.0, 0.04)
+                                self.pyrep.step()
+                                self.task.step()
+                                if self._obs_config.record_gripper_closing:
+                                    self._demo_record_step(
+                                        demo, record, callable_each_step)
+                    elif 'close_gripper(' in ext:
+                        start_of_bracket = ext.index('close_gripper(') + 14
+                        contains_param = ext[start_of_bracket] != ')'
+                        if not contains_param:
+                            done = False
+                            while not done:
+                                done = gripper.actuate(0.0, 0.04)
+                                self.pyrep.step()
+                                self.task.step()
+                                if self._obs_config.record_gripper_closing:
+                                    self._demo_record_step(
+                                        demo, record, callable_each_step)
+                                    print("Record gripper closing")
+
+                    if contains_param:
+                        rest = ext[start_of_bracket:]
+                        num = float(rest[:rest.index(')')])
+                        done = False
+                        while not done:
+                            done = gripper.actuate(num, 0.04)
+                            self.pyrep.step()
+                            self.task.step()
+                            if self._obs_config.record_gripper_closing:
+                                self._demo_record_step(
+                                    demo, record, callable_each_step)
+
+                    if 'close_gripper(' in ext:
+                        for g_obj in self.task.get_graspable_objects():
+                            gripper.grasp(g_obj)
+
+                    # After gripper obs
+                    post_gripper_obs = self.get_observation(obs_klass=ObservationAction)
+                    curr_obs = post_gripper_obs
+                    if abs(demo[-1].gripper_open - post_gripper_obs.gripper_open) < 1e-4:
+                        print("gripper config delta: 0")
+                        pass
+                    else:
+                        print("gripper config delta: 1")
+                        # Update the gripper info in the last demo
+                        demo[-1].gripper_open = post_gripper_obs.gripper_open
+                        demo[-1].gripper_touch_forces = post_gripper_obs.gripper_touch_forces
+                        demo[-1].gripper_joint_positions = post_gripper_obs.gripper_joint_positions
+                    # self._demo_record_step(demo, record, callable_each_step)
+                        print(f"Gripper (updated last): {demo[-1].gripper_open}")
+
+            if not self.task.should_repeat_waypoints() or success:
+                break
+
+        # Some tasks may need additional physics steps
+        # (e.g. ball rowling to goal)
+        if not success:
+            for _ in range(10):
+                self.pyrep.step()
+                self.task.step()
+                self._demo_record_step(demo, record, callable_each_step)
+                success, term = self.task.success()
+                if success:
+                    break
+
+        success, term = self.task.success()
+        if not success:
+            raise DemoError('Demo was completed, but was not successful.',
+                            self.task)
+        return Demo(demo)
+
     def get_observation_config(self) -> ObservationConfig:
         return self._obs_config
 
@@ -448,11 +654,19 @@ class Scene(object):
                 self._workspace_maxy > y > self._workspace_miny and
                 self._workspace_maxz > z > self._workspace_minz)
 
-    def _demo_record_step(self, demo_list, record, func):
+    def _demo_record_step(self, demo_list, record, func, gripper_pose_no_noise=None):
         if record:
             demo_list.append(self.get_observation())
+            if gripper_pose_no_noise is not None:
+                demo_list[-1].gripper_pose_no_noise = np.copy(gripper_pose_no_noise)
         if func is not None:
             func(self.get_observation())
+        
+    def _demo_action_record_step(self, demo_list, obs: Observation, action_map: Mapping[str, Any]):
+        for k, v in action_map.items():
+            if hasattr(obs, k):
+                setattr(obs, k, v)
+        demo_list.append(obs)
 
     def _set_camera_properties(self) -> None:
         def _set_rgb_props(rgb_cam: VisionSensor,

@@ -113,6 +113,10 @@ class BoundaryObject(object):
 
         if not ignore_collisions:
             for contained_obj in self._contained_objects:
+
+                if contained_obj.get_name() == 'pick_and_lift_success':
+                    continue
+
                 # Check for collision between each child
                 for cont_ob in contained_obj.get_objects_in_tree(
                         exclude_base=False):

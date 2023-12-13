@@ -279,9 +279,9 @@ class Task(object):
         """If the task placement is valid."""
         self._waypoints = self._get_waypoints()
 
-    def get_waypoints(self):
+    def get_waypoints(self, add_noise: bool = False, save_no_noise_path: bool = False):
         if self._waypoints is None:
-            self._waypoints = self._get_waypoints()
+            self._waypoints = self._get_waypoints(add_noise=add_noise, save_no_noise_path=save_no_noise_path)
         return self._waypoints
 
     def should_repeat_waypoints(self):
@@ -360,13 +360,13 @@ class Task(object):
     # Private functions #
     #####################
 
-    def _feasible(self, waypoints: List[Point]) -> Tuple[bool, int]:
+    def _feasible(self, waypoints: List[Point], add_noise: bool = False, save_no_noise_path: bool = False) -> Tuple[bool, int]:
         arm = self.robot.arm
         start_vals = arm.get_joint_positions()
         for i, point in enumerate(waypoints):
             path = None
             try:
-                path = point.get_path(ignore_collisions=True)
+                path = point.get_path(ignore_collisions=True, add_noise=add_noise, save_no_noise_path=save_no_noise_path)
             except ConfigurationPathError as err:
                 pass
             if path is None:
@@ -377,7 +377,7 @@ class Task(object):
         arm.set_joint_positions(start_vals)
         return True, -1
 
-    def _get_waypoints(self, validating=False) -> List[Waypoint]:
+    def _get_waypoints(self, validating=False, add_noise: bool = False, save_no_noise_path: bool = False) -> List[Waypoint]:
         waypoint_name = "waypoint%d"
         waypoints = []
         additional_waypoint_inits = []
